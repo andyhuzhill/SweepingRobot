@@ -3,7 +3,7 @@
  *
  *       Filename:  main.cpp
  *
- *    Description:
+ *    Description:  robot
  *
  *        Version:  1.0
  *       Revision:  none
@@ -33,14 +33,6 @@ public:
         handler = curl_easy_init();
     }
 
-    ~Solution()
-    {
-        if (map) {
-            delete[] map;
-            map = nullptr;
-        }
-    }
-
     void SetCookies(const string &cookie)
     {
         curl_easy_setopt(handler, CURLOPT_COOKIE, cookie.c_str());
@@ -48,10 +40,6 @@ public:
 
     void GetMap()
     {
-        if (map) {
-            delete []map;
-            map = nullptr;
-        }
         got_map = false;
 
         curl_easy_setopt(handler, CURLOPT_URL, get_url.c_str());
@@ -82,41 +70,40 @@ public:
 
     bool CleanRoom(const char *map, const int &row, const int &col, int posx, int posy, const string &path = "")
     {
-        //cout << "start_posx =" << start_posx << " start_posy =" << start_posy << endl;
-        //cout << "path =" << path << endl;
         bool result = false;
 
-        bool canTurnUp = CanTurnUp(map, row, col, posx, posy);
+        bool canTurnUp    = CanTurnUp(map, row, col, posx, posy);
         bool canTurnRight = CanTurnRight(map, row, col, posx, posy);
-        bool canTurnDown = CanTurnDown(map, row, col, posx, posy);
-        bool canTurnLeft = CanTurnLeft(map, row, col, posx, posy);
+        bool canTurnDown  = CanTurnDown(map, row, col, posx, posy);
+        bool canTurnLeft  = CanTurnLeft(map, row, col, posx, posy);
 
-        unique_ptr<char> data = unique_ptr<char>(new char[row * col]);
-        memcpy(data.get(), map, row * col);
+        int map_size = row * col;
+        unique_ptr<char> data = unique_ptr<char>(new char[map_size]);
+        memcpy(data.get(), map, map_size);
         if (*(data.get() + posy * col + posx) == 0) {
             *(data.get() + posy * col + posx) = 1;
         }
 
-        unique_ptr<char> data1 = unique_ptr<char>(new char[row * col]);
-        memcpy(data1.get(), map, row * col);
+        unique_ptr<char> data1 = unique_ptr<char>(new char[map_size]);
+        memcpy(data1.get(), map, map_size);
         if (*(data1.get() + posy * col + posx) == 0) {
             *(data1.get() + posy * col + posx) = 1;
         }
 
-        unique_ptr<char> data2 = unique_ptr<char>(new char[row * col]);
-        memcpy(data2.get(), map, row * col);
+        unique_ptr<char> data2 = unique_ptr<char>(new char[map_size]);
+        memcpy(data2.get(), map, map_size);
         if (*(data2.get() + posy * col + posx) == 0) {
             *(data2.get() + posy * col + posx) = 1;
         }
 
-        unique_ptr<char> data3 = unique_ptr<char>(new char[row * col]);
-        memcpy(data3.get(), map, row * col);
+        unique_ptr<char> data3 = unique_ptr<char>(new char[map_size]);
+        memcpy(data3.get(), map, map_size);
         if (*(data3.get() + posy * col + posx) == 0) {
             *(data3.get() + posy * col + posx) = 1;
         }
 
-        unique_ptr<char> data4 = unique_ptr<char>(new char[row * col]);
-        memcpy(data4.get(), map, row * col);
+        unique_ptr<char> data4 = unique_ptr<char>(new char[map_size]);
+        memcpy(data4.get(), map, map_size);
         if (*(data4.get() + posy * col + posx) == 0) {
             *(data4.get() + posy * col + posx) = 1;
         }
@@ -128,11 +115,8 @@ public:
         int d_posy = posy;
         if (canTurnUp) {
             TurnUp(data1.get(), row, col, d_posx, d_posy);
-            if (Prune(data1.get(), row, col)) {
-                result = CleanRoom(data1.get(), row, col, d_posx, d_posy, path + "u");
-                if (result) {
-                    return result;
-                }
+            if (Prune(data1.get(), row, col) && CleanRoom(data1.get(), row, col, d_posx, d_posy, path + "u")) {
+                return true;
             }
         }
 
@@ -140,11 +124,8 @@ public:
         d_posy = posy;
         if (canTurnRight) {
             TurnRight(data2.get(), row, col, d_posx, d_posy);
-            if (Prune(data2.get(), row, col)) {
-                result = CleanRoom(data2.get(), row, col, d_posx, d_posy, path + "r");
-                if (result) {
-                    return result;
-                }
+            if (Prune(data2.get(), row, col) && CleanRoom(data2.get(), row, col, d_posx, d_posy, path + "r")) {
+                return true;
             }
         }
 
@@ -152,11 +133,8 @@ public:
         d_posy = posy;
         if (canTurnDown) {
             TurnDown(data3.get(), row, col, d_posx, d_posy);
-            if (Prune(data3.get(), row, col)) {
-                result = CleanRoom(data3.get(), row, col, d_posx, d_posy, path + "d");
-                if (result) {
-                    return result;
-                }
+            if (Prune(data3.get(), row, col) && CleanRoom(data3.get(), row, col, d_posx, d_posy, path + "d")) {
+                return true;
             }
         }
 
@@ -164,19 +142,14 @@ public:
         d_posy = posy;
         if (canTurnLeft) {
             TurnLeft(data4.get(), row, col, d_posx, d_posy);
-            if (Prune(data4.get(), row, col)) {
-                result = CleanRoom(data4.get(), row, col, d_posx, d_posy, path + "l");
-                if (result) {
-                    return result;
-                }
+            if (Prune(data4.get(), row, col) && CleanRoom(data4.get(), row, col, d_posx, d_posy, path + "l")) {
+                return true;
             }
         }
 
         if (!canTurnUp && !canTurnDown && !canTurnLeft && !canTurnRight) {
-            result = CheckFinished(data.get(), col * row);
+            result = CheckFinished(data.get(), map_size);
             if (result) {
-                cout << "start_posx = " << start_posx << " start_posy =" << start_posy << endl;
-                cout << "Found path =" << path << endl;
                 m_path = path;
             }
         }
@@ -191,23 +164,24 @@ public:
         }
 
         int size = col * row;
-        PrintMap(map, row, col);
+        PrintMap(map.get(), row, col);
 
         int idx = 0;
         for (idx = 0; idx < size; ++idx) {
-            if (map[idx] == 0) {
+            if (map.get()[idx] == 0) {
                 start_posx = idx % col;
                 start_posy = idx / col;
                 break;
             }
         }
 
-        while (!CleanRoom(map, row, col, start_posx, start_posy)) {
+        while (!CleanRoom(map.get(), row, col, start_posx, start_posy)) {
+            cout << "start_posx =" << start_posx << " start_posy =" << start_posy << endl;
             if (++idx >= size) {
                 break;
             }
             for (; idx < size; ++idx) {
-                if (map[idx] == 0) {
+                if (map.get()[idx] == 0) {
                     start_posx = idx % col;
                     start_posy = idx / col;
                     break;
@@ -217,11 +191,7 @@ public:
 
         PrintSolution();
 
-        if (map) {
-            delete[] map;
-            map = nullptr;
-            got_map = false;
-        }
+        got_map = false;
     }
 
     void PrintSolution(void)
@@ -230,12 +200,24 @@ public:
         cout << "path = " << m_path << endl;
     }
 
+    static void SetMap(const std::string &path)
+    {
+      map = shared_ptr<char>(new char[path.length()]);
+      memset(map.get(), 0, path.length());
+
+      for (int i = 0 ; i < path.length() ; ++i) {
+          if (path.at(i) == '1') {
+              map.get()[i] = 255;
+          }
+      }
+    }
+
 private:
     CURL *handler = nullptr;
     string get_url;
     string post_url;
 
-    static char *map;
+    static shared_ptr<char> map;
     static int  row;
     static int  col;
     static volatile bool got_map;
@@ -280,16 +262,12 @@ private:
 
             map_string.erase(0, 4);
 
-            if (map) {
-                delete[] map;
-                map = nullptr;
-            }
-            map = new char[map_string.length()];
-            memset(map, 0, map_string.length());
+            map = shared_ptr<char>(new char[map_string.length()]);
+            memset(map.get(), 0, map_string.length());
 
             for (int i = 0 ; i < map_string.length() ; ++i) {
                 if (map_string.at(i) == '1') {
-                    map[i] = 255;
+                    map.get()[i] = 255;
                 }
             }
 
@@ -304,6 +282,7 @@ private:
         (void) buffer;
         (void) userp;
 
+        cout << endl;
         for ( int i = 0 ; i < size * nmemb ; ++i ) {
             cout << static_cast<char *>(buffer)[i];
         }
@@ -373,7 +352,7 @@ private:
         }
 
         if (px == -1) {
-           posx = 0;
+            posx = 0;
         }
     }
 
@@ -382,7 +361,7 @@ private:
         return ((posx < col - 1) && (*(map + posy * col + posx + 1) == 0));
     }
 
-    void TurnRight(char *map, const int &row, const int &col, int &posx,const int &posy)
+    void TurnRight(char *map, const int &row, const int &col, int &posx, const int &posy)
     {
         int px = 0;
         for (px = posx + 1 ; px < col; ++px) {
@@ -437,7 +416,7 @@ private:
     {
         *(map + posy * col + posx) = 2;
 
-        if (posx > 0 && *(map + posy * col + posx -1) == 0) {
+        if (posx > 0 && *(map + posy * col + posx - 1) == 0) {
             FloodFill(map, row, col, posx - 1, posy);
         }
 
@@ -454,8 +433,10 @@ private:
         }
     }
 
-    bool Prune(const char* map, const int row, const int col)
+    bool Prune(const char *map, const int row, const int col)
     {
+        return true;
+
         int size = row * col;
         int posx = 0;
         int posy = 0;
@@ -469,21 +450,22 @@ private:
         }
 
         char fill_data[size];
-        memset(fill_data, 0, size);
         memcpy(fill_data, map, size);
 
         FloodFill(fill_data, row, col, posx, posy);
 
         bool result = CheckFinished(fill_data, size);
 
-        //cout << "FloodFill result =" << result << endl;
-        //PrintMap(fill_data, row, col);
+        if (!result) {
+            cout << "FloodFill result =" << result << endl;
+            PrintMap(fill_data, row, col);
+        }
 
         return result;
     }
 };
 
-char *Solution::map = nullptr;
+shared_ptr<char> Solution::map;
 int Solution::row = 0;
 int Solution::col = 0;
 volatile bool Solution::got_map = false;
@@ -508,3 +490,4 @@ main(int argc, char *argv[])
     curl_global_cleanup();
     return 0;
 }
+
