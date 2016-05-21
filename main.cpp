@@ -18,6 +18,7 @@
 #include <memory>
 #include <regex>
 #include <string>
+#include <thread>
 
 #define DEBUG 0
 
@@ -157,8 +158,9 @@ public:
         return result;
     }
 
-    void DoSolveProblem(void)
+    void DoSolveProblem(int id = 0)
     {
+        cout << "idx=" << id << endl;
         while (!got_map) {
             cout << "Getting Map ..." << endl;
         }
@@ -166,8 +168,8 @@ public:
         int size = col * row;
         PrintMap(map.get(), row, col);
 
-        int idx = 0;
-        for (idx = 0; idx < size; ++idx) {
+        int idx = id;
+        for (idx = id; idx < size; idx += 2) {
             if (map.get()[idx] == 0) {
                 start_posx = idx % col;
                 start_posy = idx / col;
@@ -177,10 +179,10 @@ public:
 
         while (!CleanRoom(map.get(), row, col, start_posx, start_posy)) {
             cout << "start_posx =" << start_posx << " start_posy =" << start_posy << endl;
-            if (++idx >= size) {
+            if (idx >= size) {
                 break;
             }
-            for (; idx < size; ++idx) {
+            for (; idx < size; idx += 2) {
                 if (map.get()[idx] == 0) {
                     start_posx = idx % col;
                     start_posy = idx / col;
@@ -482,7 +484,14 @@ main(int argc, char *argv[])
     for (;;) {
         solution->GetMap();
 
+#if 1
+        thread t1(&Solution::DoSolveProblem, solution, 0);
+        thread t2(&Solution::DoSolveProblem, solution, 1);
+        t1.join();
+        t2.join();
+#else
         solution->DoSolveProblem();
+#endif
 
         solution->PostSolution();
     }
