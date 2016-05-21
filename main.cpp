@@ -7,8 +7,8 @@
  *
  *        Version:  1.0
  *       Revision:  none
- *       Compiler:  g++ 6.1.1
- *       Compile Flags: -Wall --std=c++11 -lcurl
+ *       Compiler:  g++ 4.9.2
+ *       Compile Flags: -std=c++11 -Wall -Werror -lcurl
  *
  * =====================================================================================
  */
@@ -17,82 +17,492 @@
 #include <curl/curl.h>
 #include <memory>
 #include <regex>
+#include <string>
+
+#define DEBUG 0
 
 using namespace std;
 
-size_t write_data(void *buffer, size_t size, size_t nmemb, void *userp)
+class Solution
 {
-    string src = string(static_cast<char *>(buffer));
-    regex match_map("level=\\d+&x=\\d+&y=\\d+&map=\\d+", regex_constants::icase);
+public:
+    Solution(const string &get, const string &post)
+        : get_url(get),
+          post_url(post)
+    {
+        handler = curl_easy_init();
+    }
 
-    auto smatch = sregex_iterator(src.begin(), src.end(), match_map);
-    auto match_end = sregex_iterator();
+    ~Solution()
+    {
+        if (map) {
+            delete[] map;
+            map = nullptr;
+        }
+    }
 
-    if (smatch != match_end) {
-        string match_string = (*smatch).str();
+    void SetCookies(const string &cookie)
+    {
+        curl_easy_setopt(handler, CURLOPT_COOKIE, cookie.c_str());
+    }
 
-        regex level_match("level=\\d+");
-        regex row_match("x=\\d+");
-        regex col_match("y=\\d+");
-        regex map_match("map=\\d+");
+    void GetMap()
+    {
+        if (map) {
+            delete []map;
+            map = nullptr;
+        }
+        got_map = false;
 
-        auto level_match_iter = sregex_iterator(match_string.begin(), match_string.end(), level_match);
-        string level_string = (*level_match_iter).str();
+        curl_easy_setopt(handler, CURLOPT_URL, get_url.c_str());
+        curl_easy_setopt(handler, CURLOPT_WRITEFUNCTION, Solution::GetMapWriteDat);
 
-        level_string.erase(0, 6);
-        std::cout << "level = " << stol(level_string) << std::endl;
+        CURLcode code = curl_easy_perform(handler);
+        if (code != CURLE_OK) {
+            cerr << "Can't perform Get operations!" << endl;
+        }
+    }
 
-        auto col_match_iter = sregex_iterator(match_string.begin(), match_string.end(), col_match);
-        string col_string = (*col_match_iter).str();
+    void PostSolution()
+    {
+        if (m_path.empty()) {
+            cerr << "Solution Not Found!" << endl;
+            return ;
+        }
+        string post = post_url + "?x=" + to_string(start_posy + 1) + "&y=" + to_string(start_posx + 1) + "&path=" + m_path;
 
-        col_string.erase(0, 2);
-        int col = stol(col_string);
-        std::cout << "col = " << col << std::endl;
+        curl_easy_setopt(handler, CURLOPT_URL, post.c_str());
+        curl_easy_setopt(handler, CURLOPT_WRITEFUNCTION, Solution::PostDataFunction);
 
-        auto row_match_iter = sregex_iterator(match_string.begin(), match_string.end(), row_match);
-        string row_string = (*row_match_iter).str();
+        CURLcode code = curl_easy_perform(handler);
+        if (code != CURLE_OK) {
+            cerr << "Can't perform Post operation!" << endl;
+        }
+    }
 
-        row_string.erase(0, 2);
-        int row = stol(row_string);
-        std::cout << "row = " << row << std::endl;
+    bool CleanRoom(const char *map, const int &row, const int &col, int posx, int posy, const string &path = "")
+    {
+        //cout << "start_posx =" << start_posx << " start_posy =" << start_posy << endl;
+        //cout << "path =" << path << endl;
+        bool result = false;
 
-        auto map_match_iter = sregex_iterator(match_string.begin(), match_string.end(), map_match);
-        string map_string = (*map_match_iter).str();
+        bool canTurnUp = CanTurnUp(map, row, col, posx, posy);
+        bool canTurnRight = CanTurnRight(map, row, col, posx, posy);
+        bool canTurnDown = CanTurnDown(map, row, col, posx, posy);
+        bool canTurnLeft = CanTurnLeft(map, row, col, posx, posy);
 
-        map_string.erase(0, 4);
-        std::cout << "map = " << (map_string) << std::endl;
+        unique_ptr<char> data = unique_ptr<char>(new char[row * col]);
+        memcpy(data.get(), map, row * col);
+        if (*(data.get() + posy * col + posx) == 0) {
+            *(data.get() + posy * col + posx) = 1;
+        }
+
+        unique_ptr<char> data1 = unique_ptr<char>(new char[row * col]);
+        memcpy(data1.get(), map, row * col);
+        if (*(data1.get() + posy * col + posx) == 0) {
+            *(data1.get() + posy * col + posx) = 1;
+        }
+
+        unique_ptr<char> data2 = unique_ptr<char>(new char[row * col]);
+        memcpy(data2.get(), map, row * col);
+        if (*(data2.get() + posy * col + posx) == 0) {
+            *(data2.get() + posy * col + posx) = 1;
+        }
+
+        unique_ptr<char> data3 = unique_ptr<char>(new char[row * col]);
+        memcpy(data3.get(), map, row * col);
+        if (*(data3.get() + posy * col + posx) == 0) {
+            *(data3.get() + posy * col + posx) = 1;
+        }
+
+        unique_ptr<char> data4 = unique_ptr<char>(new char[row * col]);
+        memcpy(data4.get(), map, row * col);
+        if (*(data4.get() + posy * col + posx) == 0) {
+            *(data4.get() + posy * col + posx) = 1;
+        }
+
+#if 0
+        PrintMap(data.get(), row, col);
+#endif
+        int d_posx = posx;
+        int d_posy = posy;
+        if (canTurnUp) {
+            TurnUp(data1.get(), row, col, d_posx, d_posy);
+            if (Prune(data1.get(), row, col)) {
+                result = CleanRoom(data1.get(), row, col, d_posx, d_posy, path + "u");
+                if (result) {
+                    return result;
+                }
+            }
+        }
+
+        d_posx = posx;
+        d_posy = posy;
+        if (canTurnRight) {
+            TurnRight(data2.get(), row, col, d_posx, d_posy);
+            if (Prune(data2.get(), row, col)) {
+                result = CleanRoom(data2.get(), row, col, d_posx, d_posy, path + "r");
+                if (result) {
+                    return result;
+                }
+            }
+        }
+
+        d_posx = posx;
+        d_posy = posy;
+        if (canTurnDown) {
+            TurnDown(data3.get(), row, col, d_posx, d_posy);
+            if (Prune(data3.get(), row, col)) {
+                result = CleanRoom(data3.get(), row, col, d_posx, d_posy, path + "d");
+                if (result) {
+                    return result;
+                }
+            }
+        }
+
+        d_posx = posx;
+        d_posy = posy;
+        if (canTurnLeft) {
+            TurnLeft(data4.get(), row, col, d_posx, d_posy);
+            if (Prune(data4.get(), row, col)) {
+                result = CleanRoom(data4.get(), row, col, d_posx, d_posy, path + "l");
+                if (result) {
+                    return result;
+                }
+            }
+        }
+
+        if (!canTurnUp && !canTurnDown && !canTurnLeft && !canTurnRight) {
+            result = CheckFinished(data.get(), col * row);
+            if (result) {
+                cout << "start_posx = " << start_posx << " start_posy =" << start_posy << endl;
+                cout << "Found path =" << path << endl;
+                m_path = path;
+            }
+        }
+
+        return result;
+    }
+
+    void DoSolveProblem(void)
+    {
+        while (!got_map) {
+            cout << "Getting Map ..." << endl;
+        }
+
+        int size = col * row;
+        PrintMap(map, row, col);
 
         int idx = 0;
-        for (int r = 0 ; r < row ; ++r ) {
-            for ( int c = 0 ; c < col ; ++c ) {
-                if (map_string.at(idx) == '1') {
-                    cout << "#";
-                } else {
-                    cout << "*";
+        for (idx = 0; idx < size; ++idx) {
+            if (map[idx] == 0) {
+                start_posx = idx % col;
+                start_posy = idx / col;
+                break;
+            }
+        }
+
+        while (!CleanRoom(map, row, col, start_posx, start_posy)) {
+            if (++idx >= size) {
+                break;
+            }
+            for (; idx < size; ++idx) {
+                if (map[idx] == 0) {
+                    start_posx = idx % col;
+                    start_posy = idx / col;
+                    break;
                 }
-                ++idx;
+            }
+        }
+
+        PrintSolution();
+
+        if (map) {
+            delete[] map;
+            map = nullptr;
+            got_map = false;
+        }
+    }
+
+    void PrintSolution(void)
+    {
+        cout << "start_posx =" << start_posx << " start_posy =" << start_posy << endl;
+        cout << "path = " << m_path << endl;
+    }
+
+private:
+    CURL *handler = nullptr;
+    string get_url;
+    string post_url;
+
+    static char *map;
+    static int  row;
+    static int  col;
+    static volatile bool got_map;
+
+    int start_posx = 0;
+    int start_posy = 0;
+
+    string m_path;
+
+    /// Network functions
+    static size_t GetMapWriteDat(void *buffer, size_t size, size_t nmemb, void *userp)
+    {
+        (void) userp;
+
+        string src = string(static_cast<char *>(buffer));
+        regex match_map("level=\\d+&x=\\d+&y=\\d+&map=\\d+", regex_constants::icase);
+
+        auto smatch = sregex_iterator(src.begin(), src.end(), match_map);
+        auto match_end = sregex_iterator();
+
+        if (smatch != match_end) {
+            string match_string = (*smatch).str();
+
+            regex row_match("x=\\d+");
+            regex col_match("y=\\d+");
+            regex map_match("map=\\d+");
+
+            auto col_match_iter = sregex_iterator(match_string.begin(), match_string.end(), col_match);
+            string col_string = (*col_match_iter).str();
+
+            col_string.erase(0, 2);
+            col = stol(col_string);
+
+            auto row_match_iter = sregex_iterator(match_string.begin(), match_string.end(), row_match);
+            string row_string = (*row_match_iter).str();
+
+            row_string.erase(0, 2);
+            row = stol(row_string);
+
+            auto map_match_iter = sregex_iterator(match_string.begin(), match_string.end(), map_match);
+            string map_string = (*map_match_iter).str();
+
+            map_string.erase(0, 4);
+
+            if (map) {
+                delete[] map;
+                map = nullptr;
+            }
+            map = new char[map_string.length()];
+            memset(map, 0, map_string.length());
+
+            for (int i = 0 ; i < map_string.length() ; ++i) {
+                if (map_string.at(i) == '1') {
+                    map[i] = 255;
+                }
+            }
+
+            got_map = true;
+        }
+
+        return size * nmemb;
+    }
+
+    static size_t PostDataFunction(void *buffer, size_t size, size_t nmemb, void *userp)
+    {
+        (void) buffer;
+        (void) userp;
+
+        for ( int i = 0 ; i < size * nmemb ; ++i ) {
+            cout << static_cast<char *>(buffer)[i];
+        }
+        cout << endl;
+
+        return size * nmemb;
+    }
+
+    // Core solution functions
+    bool CanTurnUp(const char *map, const int &row, const int &col, const int posx, const int posy)
+    {
+        return ((posy > 0) && (*(map + (posy - 1) * col + posx) == 0));
+    }
+
+    void TurnUp(char *map, const int &row, const int &col, const int &posx, int &posy)
+    {
+        int py = 0;
+        for (py = posy - 1; py >= 0; --py) {
+            if (!*(map + py * col + posx)) {
+                *(map + py * col + posx) =  1;
+            } else {
+                posy = py + 1;
+                break;
+            }
+        }
+        if (py == -1) {
+            posy = 0;
+        }
+    }
+
+    bool CanTurnDown(const char *map, const int &row, const int &col, const int posx, const int posy)
+    {
+        return ((posy < row - 1) && (*(map + (posy + 1) * col + posx) == 0));
+    }
+
+    void TurnDown(char *map, const int &row, const int &col, const int &posx, int &posy)
+    {
+        int py = 0;
+        for (py = posy + 1; py < row ; ++py) {
+            if (!*(map + py * col + posx)) {
+                *(map + py * col + posx) =  1;
+            } else {
+                posy = py - 1;
+                break;
+            }
+        }
+        if (py == row) {
+            posy = py - 1;
+        }
+    }
+
+    bool CanTurnLeft(const char *map, const int &row, const int &col, const int posx, const int posy)
+    {
+        return ((posx > 0) && (*(map + posy * col + posx - 1) == 0));
+    }
+
+    void TurnLeft(char *map, const int &row, const int &col, int &posx, const int &posy)
+    {
+        int px = 0;
+        for (px = posx - 1; px >= 0 ; --px) {
+            if (!*(map + posy * col + px)) {
+                *(map + posy * col + px) =  1;
+            } else {
+                posx = px + 1;
+                break;
+            }
+        }
+
+        if (px == -1) {
+           posx = 0;
+        }
+    }
+
+    bool CanTurnRight(const char *map, const int &row, const int &col, const int posx, const int posy)
+    {
+        return ((posx < col - 1) && (*(map + posy * col + posx + 1) == 0));
+    }
+
+    void TurnRight(char *map, const int &row, const int &col, int &posx,const int &posy)
+    {
+        int px = 0;
+        for (px = posx + 1 ; px < col; ++px) {
+            if (*(map + posy * col + px) == 0) {
+                *(map + posy * col + px) =  1;
+            } else {
+                posx = px - 1;
+                break;
+            }
+        }
+        if (px == col) {
+            posx = px - 1;
+        }
+    }
+
+    bool CheckFinished(const char *map, int size)
+    {
+        for (int i = 0; i < size; ++i) {
+            if (!map[i]) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    void PrintMap(char *map, int row, int col)
+    {
+        cout << endl << endl << "====== PrintMap =========" << endl;
+        cout << "row =" << row << " col =" << col << endl;
+        cout << "start_posx =" << start_posx << " start_posy =" << start_posy << endl;
+        cout << endl;
+        for ( int r = 0  ; r < row ; ++r ) {
+            for ( int c = 0 ; c < col ; ++c ) {
+                char data = *(map + r * col + c);
+                if (data == -1) {
+                    cout << "#";
+                } else if (data == 1) {
+                    cout << "*";
+                } else if (data == 2) {
+                    cout << "$";
+                } else {
+                    cout << ".";
+                }
             }
             cout << endl;
         }
-        cout << endl;
+        cout << "++++++ PrintMap ++++++++" << endl << endl << endl;
     }
 
-    return size * nmemb;
-}
+    void FloodFill(char *map, const int row, const int col, int posx, int posy)
+    {
+        *(map + posy * col + posx) = 2;
 
-int main(int argc, char *argv[])
+        if (posx > 0 && *(map + posy * col + posx -1) == 0) {
+            FloodFill(map, row, col, posx - 1, posy);
+        }
+
+        if (posy > 0 && *(map + (posy - 1) * col + posx) == 0) {
+            FloodFill(map, row, col, posx, posy - 1);
+        }
+
+        if (posx < col && *(map + posy * col + posx + 1) == 0) {
+            FloodFill(map, row, col, posx + 1, posy);
+        }
+
+        if (posy < row && *(map + (posy + 1) * col + posx) == 0) {
+            FloodFill(map, row, col, posx , posy + 1);
+        }
+    }
+
+    bool Prune(const char* map, const int row, const int col)
+    {
+        int size = row * col;
+        int posx = 0;
+        int posy = 0;
+        int i = 0;
+        for (i = 0; i < size; ++i) {
+            if (map[i] == 0) {
+                posx = i % col;
+                posy = i / col;
+                break;
+            }
+        }
+
+        char fill_data[size];
+        memset(fill_data, 0, size);
+        memcpy(fill_data, map, size);
+
+        FloodFill(fill_data, row, col, posx, posy);
+
+        bool result = CheckFinished(fill_data, size);
+
+        //cout << "FloodFill result =" << result << endl;
+        //PrintMap(fill_data, row, col);
+
+        return result;
+    }
+};
+
+char *Solution::map = nullptr;
+int Solution::row = 0;
+int Solution::col = 0;
+volatile bool Solution::got_map = false;
+
+int
+main(int argc, char *argv[])
 {
     curl_global_init(CURL_GLOBAL_ALL);
 
-    auto handle = curl_easy_init();
+    Solution *solution = new Solution("http://www.qlcoder.com/train/autocr", "http://www.qlcoder.com/train/crcheck");
 
-    curl_easy_setopt(handle, CURLOPT_URL, "http://www.qlcoder.com/train/autocr");
-    curl_easy_setopt(handle, CURLOPT_COOKIE, "laravel_session=eyJpdiI6IkhFckdFZkZOam9wOW9IRmxNSXBaMWc9PSIsInZhbHVlIjoiZFRuT1A2d0V5bjNpMGZVTXYyRGJYZlhQQUhLbjRlNVZ1Q2U1MDhLTkdtRStUZHR3UmdPY3NRdWNFYUNqNEJxRFhGdmM1aWtQc2FMd1g1Wk1NQXNvUUE9PSIsIm1hYyI6ImM1NWJjY2NjNTZiNTM1NzU0MTg1MWEyNzliMmVkZmRhOTU3NjI3MmUxYjg0OTkwOWI0MjhmN2ZjMjM0NTFkYjIifQ%3D%3D;");
-    curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, write_data);
+    solution->SetCookies("laravel_session=eyJpdiI6IkhFckdFZkZOam9wOW9IRmxNSXBaMWc9PSIsInZhbHVlIjoiZFRuT1A2d0V5bjNpMGZVTXYyRGJYZlhQQUhLbjRlNVZ1Q2U1MDhLTkdtRStUZHR3UmdPY3NRdWNFYUNqNEJxRFhGdmM1aWtQc2FMd1g1Wk1NQXNvUUE9PSIsIm1hYyI6ImM1NWJjY2NjNTZiNTM1NzU0MTg1MWEyNzliMmVkZmRhOTU3NjI3MmUxYjg0OTkwOWI0MjhmN2ZjMjM0NTFkYjIifQ%3D%3D;");
 
-    CURLcode success = curl_easy_perform(handle);
-    if (success != CURLE_OK) {
-        cout << "Can't perform url operations!" << endl;
+    for (;;) {
+        solution->GetMap();
+
+        solution->DoSolveProblem();
+
+        solution->PostSolution();
     }
 
     curl_global_cleanup();
