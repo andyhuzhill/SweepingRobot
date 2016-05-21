@@ -160,7 +160,6 @@ public:
 
     void DoSolveProblem(int id = 0)
     {
-        cout << "idx=" << id << endl;
         while (!got_map) {
             cout << "Getting Map ..." << endl;
         }
@@ -178,8 +177,9 @@ public:
         }
 
         while (!CleanRoom(map.get(), row, col, start_posx, start_posy)) {
-            cout << "start_posx =" << start_posx << " start_posy =" << start_posy << endl;
-            if (idx >= size) {
+            cout << "thread_id =" << this_thread::get_id() << endl;
+            cout << "start_posx = " << start_posx << " start_posy = " << start_posy << endl;
+            if ((idx += 2) >= size) {
                 break;
             }
             for (; idx < size; idx += 2) {
@@ -193,6 +193,8 @@ public:
 
         PrintSolution();
 
+        PostSolution();
+
         got_map = false;
     }
 
@@ -204,14 +206,14 @@ public:
 
     static void SetMap(const std::string &path)
     {
-      map = shared_ptr<char>(new char[path.length()]);
-      memset(map.get(), 0, path.length());
+        map = shared_ptr<char>(new char[path.length()]);
+        memset(map.get(), 0, path.length());
 
-      for (int i = 0 ; i < path.length() ; ++i) {
-          if (path.at(i) == '1') {
-              map.get()[i] = 255;
-          }
-      }
+        for (int i = 0 ; i < path.length() ; ++i) {
+            if (path.at(i) == '1') {
+                map.get()[i] = 255;
+            }
+        }
     }
 
 private:
@@ -484,19 +486,16 @@ main(int argc, char *argv[])
     for (;;) {
         solution->GetMap();
 
-#if 1
         thread t1(&Solution::DoSolveProblem, solution, 0);
         thread t2(&Solution::DoSolveProblem, solution, 1);
         t1.join();
         t2.join();
-#else
-        solution->DoSolveProblem();
-#endif
 
-        solution->PostSolution();
+        // solution->PostSolution();
     }
 
     curl_global_cleanup();
     return 0;
 }
+
 
