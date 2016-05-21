@@ -68,7 +68,7 @@ public:
         }
     }
 
-    bool CleanRoom(const char *map, const int &row, const int &col, int posx, int posy, const string &path = "")
+    bool CleanRoom(const char *map, const int row, const int col, int posx, int posy, const string &path = "")
     {
         bool result = false;
 
@@ -202,14 +202,14 @@ public:
 
     static void SetMap(const std::string &path)
     {
-      map = shared_ptr<char>(new char[path.length()]);
-      memset(map.get(), 0, path.length());
+        map = shared_ptr<char>(new char[path.length()]);
+        memset(map.get(), 0, path.length());
 
-      for (int i = 0 ; i < path.length() ; ++i) {
-          if (path.at(i) == '1') {
-              map.get()[i] = 255;
-          }
-      }
+        for (int i = 0 ; i < path.length() ; ++i) {
+            if (path.at(i) == '1') {
+                map.get()[i] = 255;
+            }
+        }
     }
 
 private:
@@ -388,7 +388,7 @@ private:
         return true;
     }
 
-    void PrintMap(char *map, int row, int col)
+    void PrintMap(const char *map, const int row, const int col)
     {
         cout << endl << endl << "====== PrintMap =========" << endl;
         cout << "row =" << row << " col =" << col << endl;
@@ -412,7 +412,7 @@ private:
         cout << "++++++ PrintMap ++++++++" << endl << endl << endl;
     }
 
-    void FloodFill(char *map, const int row, const int col, int posx, int posy)
+    void FloodFill(char *map, const int row, const int col, const int posx, const int posy)
     {
         *(map + posy * col + posx) = 2;
 
@@ -435,7 +435,7 @@ private:
 
     bool Prune(const char *map, const int row, const int col)
     {
-        return true;
+        //return true;
 
         int size = row * col;
         int posx = 0;
@@ -455,11 +455,6 @@ private:
         FloodFill(fill_data, row, col, posx, posy);
 
         bool result = CheckFinished(fill_data, size);
-
-        if (!result) {
-            cout << "FloodFill result =" << result << endl;
-            PrintMap(fill_data, row, col);
-        }
 
         return result;
     }
@@ -490,4 +485,5 @@ main(int argc, char *argv[])
     curl_global_cleanup();
     return 0;
 }
+
 
