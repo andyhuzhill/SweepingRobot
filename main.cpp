@@ -169,59 +169,30 @@ public:
         int size = col * row;
         PrintMap(map.get(), row, col);
 
-        int idx = 0;
-        if (id == 0) {
-            for (idx = 0; idx < size; idx++ ) {
+        int idx = id * size / 8;
+        for (; idx < size; idx++ ) {
+            if (map.get()[idx] == 0) {
+                start_posx = idx % col;
+                start_posy = idx / col;
+                break;
+            }
+        }
+
+        while (!CleanRoom(map.get(), row, col, start_posx, start_posy)) {
+            cout << "thread_id =" << this_thread::get_id() << endl;
+            cout << "level =" << level << endl;
+            cout << "start_posx = " << start_posx << " start_posy = " << start_posy << endl;
+            if (got_answer) {
+                break;
+            }
+            if ((idx++) >= size) {
+                break;
+            }
+            for (; idx < size; idx++) {
                 if (map.get()[idx] == 0) {
                     start_posx = idx % col;
                     start_posy = idx / col;
                     break;
-                }
-            }
-
-            while (!CleanRoom(map.get(), row, col, start_posx, start_posy)) {
-                cout << "thread_id =" << this_thread::get_id() << endl;
-                cout << "start_posx = " << start_posx << " start_posy = " << start_posy << endl;
-                if (got_answer) {
-                    break;
-                }
-                if ((idx++) >= size) {
-                    break;
-                }
-                for (; idx < size; idx++) {
-                    if (map.get()[idx] == 0) {
-                        start_posx = idx % col;
-                        start_posy = idx / col;
-                        break;
-                    }
-                }
-            }
-        } else {
-
-            for (idx = size - 1; idx >= 0; idx--) {
-                if (map.get()[idx] == 0) {
-                    start_posx = idx % col;
-                    start_posy = idx / col;
-                    break;
-                }
-            }
-
-            while (!CleanRoom(map.get(), row, col, start_posx, start_posy)) {
-                cout << "thread_id =" << this_thread::get_id() << endl;
-                cout << "level = " << level << endl;
-                cout << "start_posx = " << start_posx << " start_posy = " << start_posy << endl;
-                if (got_answer) {
-                    break;
-                }
-                if ((idx--) < 0) {
-                    break;
-                }
-                for (; idx >= 0; idx--) {
-                    if (map.get()[idx] == 0) {
-                        start_posx = idx % col;
-                        start_posy = idx / col;
-                        break;
-                    }
                 }
             }
         }
@@ -442,8 +413,8 @@ private:
         cout << "row =" << row << " col =" << col << endl;
         cout << "start_posx =" << start_posx << " start_posy =" << start_posy << endl;
         cout << endl;
-        for ( int r = 0  ; r < row ; ++r ) {
-            for ( int c = 0 ; c < col ; ++c ) {
+        for (int r = 0  ; r < row ; ++r) {
+            for (int c = 0 ; c < col ; ++c) {
                 char data = *(map + r * col + c);
                 if (data == -1) {
                     cout << "#";
@@ -520,24 +491,51 @@ main(int argc, char *argv[])
 
     Solution *solution1 = new Solution("http://www.qlcoder.com/train/autocr", "http://www.qlcoder.com/train/crcheck");
     Solution *solution2 = new Solution("http://www.qlcoder.com/train/autocr", "http://www.qlcoder.com/train/crcheck");
+    Solution *solution3 = new Solution("http://www.qlcoder.com/train/autocr", "http://www.qlcoder.com/train/crcheck");
+    Solution *solution4 = new Solution("http://www.qlcoder.com/train/autocr", "http://www.qlcoder.com/train/crcheck");
+    Solution *solution5 = new Solution("http://www.qlcoder.com/train/autocr", "http://www.qlcoder.com/train/crcheck");
+    Solution *solution6 = new Solution("http://www.qlcoder.com/train/autocr", "http://www.qlcoder.com/train/crcheck");
+    Solution *solution7 = new Solution("http://www.qlcoder.com/train/autocr", "http://www.qlcoder.com/train/crcheck");
+    Solution *solution8 = new Solution("http://www.qlcoder.com/train/autocr", "http://www.qlcoder.com/train/crcheck");
 
     solution1->SetCookies("laravel_session=eyJpdiI6IkhFckdFZkZOam9wOW9IRmxNSXBaMWc9PSIsInZhbHVlIjoiZFRuT1A2d0V5bjNpMGZVTXYyRGJYZlhQQUhLbjRlNVZ1Q2U1MDhLTkdtRStUZHR3UmdPY3NRdWNFYUNqNEJxRFhGdmM1aWtQc2FMd1g1Wk1NQXNvUUE9PSIsIm1hYyI6ImM1NWJjY2NjNTZiNTM1NzU0MTg1MWEyNzliMmVkZmRhOTU3NjI3MmUxYjg0OTkwOWI0MjhmN2ZjMjM0NTFkYjIifQ%3D%3D;");
     solution2->SetCookies("laravel_session=eyJpdiI6IkhFckdFZkZOam9wOW9IRmxNSXBaMWc9PSIsInZhbHVlIjoiZFRuT1A2d0V5bjNpMGZVTXYyRGJYZlhQQUhLbjRlNVZ1Q2U1MDhLTkdtRStUZHR3UmdPY3NRdWNFYUNqNEJxRFhGdmM1aWtQc2FMd1g1Wk1NQXNvUUE9PSIsIm1hYyI6ImM1NWJjY2NjNTZiNTM1NzU0MTg1MWEyNzliMmVkZmRhOTU3NjI3MmUxYjg0OTkwOWI0MjhmN2ZjMjM0NTFkYjIifQ%3D%3D;");
+    solution3->SetCookies("laravel_session=eyJpdiI6IkhFckdFZkZOam9wOW9IRmxNSXBaMWc9PSIsInZhbHVlIjoiZFRuT1A2d0V5bjNpMGZVTXYyRGJYZlhQQUhLbjRlNVZ1Q2U1MDhLTkdtRStUZHR3UmdPY3NRdWNFYUNqNEJxRFhGdmM1aWtQc2FMd1g1Wk1NQXNvUUE9PSIsIm1hYyI6ImM1NWJjY2NjNTZiNTM1NzU0MTg1MWEyNzliMmVkZmRhOTU3NjI3MmUxYjg0OTkwOWI0MjhmN2ZjMjM0NTFkYjIifQ%3D%3D;");
+    solution4->SetCookies("laravel_session=eyJpdiI6IkhFckdFZkZOam9wOW9IRmxNSXBaMWc9PSIsInZhbHVlIjoiZFRuT1A2d0V5bjNpMGZVTXYyRGJYZlhQQUhLbjRlNVZ1Q2U1MDhLTkdtRStUZHR3UmdPY3NRdWNFYUNqNEJxRFhGdmM1aWtQc2FMd1g1Wk1NQXNvUUE9PSIsIm1hYyI6ImM1NWJjY2NjNTZiNTM1NzU0MTg1MWEyNzliMmVkZmRhOTU3NjI3MmUxYjg0OTkwOWI0MjhmN2ZjMjM0NTFkYjIifQ%3D%3D;");
+    solution5->SetCookies("laravel_session=eyJpdiI6IkhFckdFZkZOam9wOW9IRmxNSXBaMWc9PSIsInZhbHVlIjoiZFRuT1A2d0V5bjNpMGZVTXYyRGJYZlhQQUhLbjRlNVZ1Q2U1MDhLTkdtRStUZHR3UmdPY3NRdWNFYUNqNEJxRFhGdmM1aWtQc2FMd1g1Wk1NQXNvUUE9PSIsIm1hYyI6ImM1NWJjY2NjNTZiNTM1NzU0MTg1MWEyNzliMmVkZmRhOTU3NjI3MmUxYjg0OTkwOWI0MjhmN2ZjMjM0NTFkYjIifQ%3D%3D;");
+    solution6->SetCookies("laravel_session=eyJpdiI6IkhFckdFZkZOam9wOW9IRmxNSXBaMWc9PSIsInZhbHVlIjoiZFRuT1A2d0V5bjNpMGZVTXYyRGJYZlhQQUhLbjRlNVZ1Q2U1MDhLTkdtRStUZHR3UmdPY3NRdWNFYUNqNEJxRFhGdmM1aWtQc2FMd1g1Wk1NQXNvUUE9PSIsIm1hYyI6ImM1NWJjY2NjNTZiNTM1NzU0MTg1MWEyNzliMmVkZmRhOTU3NjI3MmUxYjg0OTkwOWI0MjhmN2ZjMjM0NTFkYjIifQ%3D%3D;");
+    solution7->SetCookies("laravel_session=eyJpdiI6IkhFckdFZkZOam9wOW9IRmxNSXBaMWc9PSIsInZhbHVlIjoiZFRuT1A2d0V5bjNpMGZVTXYyRGJYZlhQQUhLbjRlNVZ1Q2U1MDhLTkdtRStUZHR3UmdPY3NRdWNFYUNqNEJxRFhGdmM1aWtQc2FMd1g1Wk1NQXNvUUE9PSIsIm1hYyI6ImM1NWJjY2NjNTZiNTM1NzU0MTg1MWEyNzliMmVkZmRhOTU3NjI3MmUxYjg0OTkwOWI0MjhmN2ZjMjM0NTFkYjIifQ%3D%3D;");
+    solution8->SetCookies("laravel_session=eyJpdiI6IkhFckdFZkZOam9wOW9IRmxNSXBaMWc9PSIsInZhbHVlIjoiZFRuT1A2d0V5bjNpMGZVTXYyRGJYZlhQQUhLbjRlNVZ1Q2U1MDhLTkdtRStUZHR3UmdPY3NRdWNFYUNqNEJxRFhGdmM1aWtQc2FMd1g1Wk1NQXNvUUE9PSIsIm1hYyI6ImM1NWJjY2NjNTZiNTM1NzU0MTg1MWEyNzliMmVkZmRhOTU3NjI3MmUxYjg0OTkwOWI0MjhmN2ZjMjM0NTFkYjIifQ%3D%3D;");
 
     for (;;) {
         solution1->GetMap();
         solution2->GetMap();
+        solution3->GetMap();
+        solution4->GetMap();
+        solution5->GetMap();
+        solution6->GetMap();
+        solution7->GetMap();
+        solution8->GetMap();
 
         thread t1(&Solution::DoSolveProblem, solution1, 0);
         thread t2(&Solution::DoSolveProblem, solution2, 1);
+        thread t3(&Solution::DoSolveProblem, solution3, 2);
+        thread t4(&Solution::DoSolveProblem, solution4, 3);
+        thread t5(&Solution::DoSolveProblem, solution5, 4);
+        thread t6(&Solution::DoSolveProblem, solution6, 5);
+        thread t7(&Solution::DoSolveProblem, solution7, 6);
+        thread t8(&Solution::DoSolveProblem, solution8, 7);
+
         t1.join();
         t2.join();
+        t3.join();
+        t4.join();
+        t5.join();
+        t6.join();
+        t7.join();
+        t8.join();
     }
 
     curl_global_cleanup();
     return 0;
 }
-
-
-
-
