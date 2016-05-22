@@ -205,7 +205,7 @@ public:
         map = shared_ptr<char>(new char[path.length()]);
         memset(map.get(), 0, path.length());
 
-        for (int i = 0 ; i < path.length() ; ++i) {
+        for (uint i = 0 ; i < path.length() ; ++i) {
             if (path.at(i) == '1') {
                 map.get()[i] = 255;
             }
@@ -265,7 +265,7 @@ private:
             map = shared_ptr<char>(new char[map_string.length()]);
             memset(map.get(), 0, map_string.length());
 
-            for (int i = 0 ; i < map_string.length() ; ++i) {
+            for (uint i = 0 ; i < map_string.length() ; ++i) {
                 if (map_string.at(i) == '1') {
                     map.get()[i] = 255;
                 }
@@ -283,7 +283,7 @@ private:
         (void) userp;
 
         cout << endl;
-        for ( int i = 0 ; i < size * nmemb ; ++i ) {
+        for (uint i = 0 ; i < size * nmemb ; ++i) {
             cout << static_cast<char *>(buffer)[i];
         }
         cout << endl;
@@ -394,8 +394,8 @@ private:
         cout << "row =" << row << " col =" << col << endl;
         cout << "start_posx =" << start_posx << " start_posy =" << start_posy << endl;
         cout << endl;
-        for ( int r = 0  ; r < row ; ++r ) {
-            for ( int c = 0 ; c < col ; ++c ) {
+        for (int r = 0  ; r < row ; ++r) {
+            for (int c = 0 ; c < col ; ++c) {
                 char data = *(map + r * col + c);
                 if (data == -1) {
                     cout << "#";
@@ -424,11 +424,11 @@ private:
             FloodFill(map, row, col, posx, posy - 1);
         }
 
-        if (posx < col && *(map + posy * col + posx + 1) == 0) {
+        if (posx < (col - 1) && *(map + posy * col + posx + 1) == 0) {
             FloodFill(map, row, col, posx + 1, posy);
         }
 
-        if (posy < row && *(map + (posy + 1) * col + posx) == 0) {
+        if (posy < (row - 1) && *(map + (posy + 1) * col + posx) == 0) {
             FloodFill(map, row, col, posx , posy + 1);
         }
     }
