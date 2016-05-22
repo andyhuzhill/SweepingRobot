@@ -208,6 +208,7 @@ public:
 
             while (!CleanRoom(map.get(), row, col, start_posx, start_posy)) {
                 cout << "thread_id =" << this_thread::get_id() << endl;
+                cout << "level = " << level << endl;
                 cout << "start_posx = " << start_posx << " start_posy = " << start_posy << endl;
                 if (got_answer) {
                     break;
@@ -260,6 +261,7 @@ private:
     static int  col;
     static volatile bool got_map;
     static volatile bool got_answer;
+    static int level;
 
     int start_posx = 0;
     int start_posy = 0;
@@ -280,9 +282,16 @@ private:
         if (smatch != match_end) {
             string match_string = (*smatch).str();
 
+            regex level_match("level=\\d+");
             regex row_match("x=\\d+");
             regex col_match("y=\\d+");
             regex map_match("map=\\d+");
+
+            auto level_match_iter = sregex_iterator(match_string.begin(), match_string.end(),  level_match);
+            string level_string = (*level_match_iter).str();
+
+            level_string.erase(0, 6);
+            level = stol(level_string);
 
             auto col_match_iter = sregex_iterator(match_string.begin(), match_string.end(), col_match);
             string col_string = (*col_match_iter).str();
@@ -502,25 +511,27 @@ int Solution::row = 0;
 int Solution::col = 0;
 volatile bool Solution::got_map = false;
 volatile bool Solution::got_answer = false;
+int Solution::level = 0;
 
 int
 main(int argc, char *argv[])
 {
     curl_global_init(CURL_GLOBAL_ALL);
 
-    Solution *solution = new Solution("http://www.qlcoder.com/train/autocr", "http://www.qlcoder.com/train/crcheck");
+    Solution *solution1 = new Solution("http://www.qlcoder.com/train/autocr", "http://www.qlcoder.com/train/crcheck");
+    Solution *solution2 = new Solution("http://www.qlcoder.com/train/autocr", "http://www.qlcoder.com/train/crcheck");
 
-    solution->SetCookies("laravel_session=eyJpdiI6IkhFckdFZkZOam9wOW9IRmxNSXBaMWc9PSIsInZhbHVlIjoiZFRuT1A2d0V5bjNpMGZVTXYyRGJYZlhQQUhLbjRlNVZ1Q2U1MDhLTkdtRStUZHR3UmdPY3NRdWNFYUNqNEJxRFhGdmM1aWtQc2FMd1g1Wk1NQXNvUUE9PSIsIm1hYyI6ImM1NWJjY2NjNTZiNTM1NzU0MTg1MWEyNzliMmVkZmRhOTU3NjI3MmUxYjg0OTkwOWI0MjhmN2ZjMjM0NTFkYjIifQ%3D%3D;");
+    solution1->SetCookies("laravel_session=eyJpdiI6IkhFckdFZkZOam9wOW9IRmxNSXBaMWc9PSIsInZhbHVlIjoiZFRuT1A2d0V5bjNpMGZVTXYyRGJYZlhQQUhLbjRlNVZ1Q2U1MDhLTkdtRStUZHR3UmdPY3NRdWNFYUNqNEJxRFhGdmM1aWtQc2FMd1g1Wk1NQXNvUUE9PSIsIm1hYyI6ImM1NWJjY2NjNTZiNTM1NzU0MTg1MWEyNzliMmVkZmRhOTU3NjI3MmUxYjg0OTkwOWI0MjhmN2ZjMjM0NTFkYjIifQ%3D%3D;");
+    solution2->SetCookies("laravel_session=eyJpdiI6IkhFckdFZkZOam9wOW9IRmxNSXBaMWc9PSIsInZhbHVlIjoiZFRuT1A2d0V5bjNpMGZVTXYyRGJYZlhQQUhLbjRlNVZ1Q2U1MDhLTkdtRStUZHR3UmdPY3NRdWNFYUNqNEJxRFhGdmM1aWtQc2FMd1g1Wk1NQXNvUUE9PSIsIm1hYyI6ImM1NWJjY2NjNTZiNTM1NzU0MTg1MWEyNzliMmVkZmRhOTU3NjI3MmUxYjg0OTkwOWI0MjhmN2ZjMjM0NTFkYjIifQ%3D%3D;");
 
     for (;;) {
-        solution->GetMap();
+        solution1->GetMap();
+        solution2->GetMap();
 
-        thread t1(&Solution::DoSolveProblem, solution, 0);
-        thread t2(&Solution::DoSolveProblem, solution, 1);
+        thread t1(&Solution::DoSolveProblem, solution1, 0);
+        thread t2(&Solution::DoSolveProblem, solution2, 1);
         t1.join();
         t2.join();
-
-        // solution->PostSolution();
     }
 
     curl_global_cleanup();
