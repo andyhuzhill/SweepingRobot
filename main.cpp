@@ -42,6 +42,7 @@ public:
     void GetMap()
     {
         got_map = false;
+        got_answer = false;
 
         curl_easy_setopt(handler, CURLOPT_URL, get_url.c_str());
         curl_easy_setopt(handler, CURLOPT_WRITEFUNCTION, Solution::GetMapWriteDat);
@@ -152,6 +153,7 @@ public:
             result = CheckFinished(data.get(), map_size);
             if (result) {
                 m_path = path;
+                got_answer = true;
             }
         }
 
@@ -167,26 +169,58 @@ public:
         int size = col * row;
         PrintMap(map.get(), row, col);
 
-        int idx = id;
-        for (idx = id; idx < size; idx += 2) {
-            if (map.get()[idx] == 0) {
-                start_posx = idx % col;
-                start_posy = idx / col;
-                break;
-            }
-        }
-
-        while (!CleanRoom(map.get(), row, col, start_posx, start_posy)) {
-            cout << "thread_id =" << this_thread::get_id() << endl;
-            cout << "start_posx = " << start_posx << " start_posy = " << start_posy << endl;
-            if ((idx += 2) >= size) {
-                break;
-            }
-            for (; idx < size; idx += 2) {
+        int idx = 0;
+        if (id == 0) {
+            for (idx = 0; idx < size; idx++ ) {
                 if (map.get()[idx] == 0) {
                     start_posx = idx % col;
                     start_posy = idx / col;
                     break;
+                }
+            }
+
+            while (!CleanRoom(map.get(), row, col, start_posx, start_posy)) {
+                cout << "thread_id =" << this_thread::get_id() << endl;
+                cout << "start_posx = " << start_posx << " start_posy = " << start_posy << endl;
+                if (got_answer) {
+                    break;
+                }
+                if ((idx++) >= size) {
+                    break;
+                }
+                for (; idx < size; idx++) {
+                    if (map.get()[idx] == 0) {
+                        start_posx = idx % col;
+                        start_posy = idx / col;
+                        break;
+                    }
+                }
+            }
+        } else {
+
+            for (idx = size - 1; idx >= 0; idx--) {
+                if (map.get()[idx] == 0) {
+                    start_posx = idx % col;
+                    start_posy = idx / col;
+                    break;
+                }
+            }
+
+            while (!CleanRoom(map.get(), row, col, start_posx, start_posy)) {
+                cout << "thread_id =" << this_thread::get_id() << endl;
+                cout << "start_posx = " << start_posx << " start_posy = " << start_posy << endl;
+                if (got_answer) {
+                    break;
+                }
+                if ((idx--) < 0) {
+                    break;
+                }
+                for (; idx >= 0; idx--) {
+                    if (map.get()[idx] == 0) {
+                        start_posx = idx % col;
+                        start_posy = idx / col;
+                        break;
+                    }
                 }
             }
         }
@@ -209,7 +243,7 @@ public:
         map = shared_ptr<char>(new char[path.length()]);
         memset(map.get(), 0, path.length());
 
-        for (int i = 0 ; i < path.length() ; ++i) {
+        for (uint i = 0 ; i < path.length() ; ++i) {
             if (path.at(i) == '1') {
                 map.get()[i] = 255;
             }
@@ -225,6 +259,7 @@ private:
     static int  row;
     static int  col;
     static volatile bool got_map;
+    static volatile bool got_answer;
 
     int start_posx = 0;
     int start_posy = 0;
@@ -269,7 +304,7 @@ private:
             map = shared_ptr<char>(new char[map_string.length()]);
             memset(map.get(), 0, map_string.length());
 
-            for (int i = 0 ; i < map_string.length() ; ++i) {
+            for (uint i = 0 ; i < map_string.length() ; ++i) {
                 if (map_string.at(i) == '1') {
                     map.get()[i] = 255;
                 }
@@ -287,7 +322,7 @@ private:
         (void) userp;
 
         cout << endl;
-        for ( int i = 0 ; i < size * nmemb ; ++i ) {
+        for (uint i = 0 ; i < size * nmemb ; ++i) {
             cout << static_cast<char *>(buffer)[i];
         }
         cout << endl;
@@ -428,19 +463,17 @@ private:
             FloodFill(map, row, col, posx, posy - 1);
         }
 
-        if (posx < col && *(map + posy * col + posx + 1) == 0) {
+        if (posx < (col - 1) && *(map + posy * col + posx + 1) == 0) {
             FloodFill(map, row, col, posx + 1, posy);
         }
 
-        if (posy < row && *(map + (posy + 1) * col + posx) == 0) {
+        if (posy < (row - 1) && *(map + (posy + 1) * col + posx) == 0) {
             FloodFill(map, row, col, posx , posy + 1);
         }
     }
 
     bool Prune(const char *map, const int row, const int col)
     {
-        return true;
-
         int size = row * col;
         int posx = 0;
         int posy = 0;
@@ -460,11 +493,6 @@ private:
 
         bool result = CheckFinished(fill_data, size);
 
-        if (!result) {
-            cout << "FloodFill result =" << result << endl;
-            PrintMap(fill_data, row, col);
-        }
-
         return result;
     }
 };
@@ -473,6 +501,7 @@ shared_ptr<char> Solution::map;
 int Solution::row = 0;
 int Solution::col = 0;
 volatile bool Solution::got_map = false;
+volatile bool Solution::got_answer = false;
 
 int
 main(int argc, char *argv[])
@@ -497,5 +526,7 @@ main(int argc, char *argv[])
     curl_global_cleanup();
     return 0;
 }
+
+
 
 
