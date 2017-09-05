@@ -1,7 +1,14 @@
-project(robot)
 cmake_minimum_required(VERSION 2.8)
-add_definitions(-std=c++11)
-aux_source_directory(. SRC_LIST)
-add_executable(${PROJECT_NAME} ${SRC_LIST})
 
-target_link_libraries(${PROJECT_NAME} PocoNet PocoFoundation PocoUtil)
+set(CMAKE_INSTALL_PREFIX ${PROJECT_BINARY_DIR})
+set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
+set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
+
+
+# Add application code
+add_subdirectory(src)
+
+# Add Test
+add_subdirectory(test)
+
+
