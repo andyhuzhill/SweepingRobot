@@ -2,6 +2,7 @@
 #include <iomanip>
 #include <regex>
 #include <string>
+#include <stack>
 #include <vector>
 #include <memory>
 #include <assert.h>
@@ -22,24 +23,22 @@ using namespace std;
 using namespace Poco;
 using namespace Poco::Net;
 
-class TaskWalk :public Runnable
-{
-public:
-    TaskWalk() {}
-
-    void run() final {
-        cout << "Hello World!" << endl;
-    }
-};
+typedef struct {
+    int x;
+    int y;
+} Position;
 
 class MapData
 {
 public:
+    MapData() {
+    }
+
     MapData(int level, int w, int h, string mapstr = "") {
         m_level = level;
         m_width = w;
         m_height = h;
-        data = shared_ptr<int8_t>(new int8_t[w * h]);
+        data = shared_ptr<uint8_t>(new uint8_t[w * h]);
         memset(data.get(), 0, w * h);
         if (!mapstr.empty()) {
             for (int i = 0; i < mapstr.length(); ++i) {
@@ -48,23 +47,42 @@ public:
         }
     }
 
-    const int level() {
+    //    MapData(const MapData &src) {
+    //        m_level = src.level();
+    //        m_width = src.width();
+    //        m_height = src.height();
+    //        data = shared_ptr<uint8_t>(new uint8_t[m_width * m_height]);
+    //        memcpy(data.get(), src.getData(), m_width * m_height);
+    //    }
+
+    MapData &operator=( MapData &src) {
+        if (this != &src) {
+            m_level = src.level();
+            m_width = src.width();
+            m_height = src.height();
+            data = shared_ptr<uint8_t>(new uint8_t[m_width * m_height]);
+            memcpy(data.get(), src.getData(), m_width * m_height);
+        }
+        return *this;
+    }
+
+    int level() {
         return m_level;
     }
 
-    const int width() {
+    int width() {
         return m_width;
     }
 
-    const int height() {
+    int height() {
         return m_height;
     }
 
-    int8_t* const operator[](int row) {
+    uint8_t* const operator[](int row) {
         return &(data.get()[row * m_width]);
     }
 
-    int8_t& at(int row, int col) {
+    uint8_t& at(int row, int col) {
         assert(row >= 0);
         assert(row < m_height);
         assert(col >= 0);
@@ -102,24 +120,63 @@ public:
         }
     }
 
+    string getResult() {
+        int resultLength = m_path.size() - 1;
+        shared_ptr<char> resultBuff = shared_ptr<char>(new char[resultLength]);
+        memset(resultBuff.get(), 0, resultLength);
+
+        if (m_path.size() > 1) {
+            Position last = m_path.top();
+            m_path.pop();
+            int pos = resultLength - 1;
+
+            while (!m_path.empty()) {
+                Position curr = m_path.top();
+
+                if (curr.x == last.x) {
+                    if (curr.y > last.y) {
+                        resultBuff.get()[pos--] = 'l';
+                    } else {
+                        resultBuff.get()[pos--] = 'r';
+                    }
+                } else if (curr.y == last.y) {
+                    if (curr.x > last.x) {
+                        resultBuff.get()[pos--] = 'd';
+                    } else {
+                        resultBuff.get()[pos--] = 'u';
+                    }
+                }
+
+                last = curr;
+            }
+        }
+
+        return string(resultBuff.get());
+    }
+
+    uint8_t *getData() {
+        return data.get();
+    }
+
 private:
     int m_level = 0;
     int m_width = 0;
     int m_height = 0;
-    shared_ptr<int8_t> data;
+    shared_ptr<uint8_t> data;
+
+    stack<Position> m_path;
 };
 
 class Solution
 {
-
 public:
     Solution() {
         session.setHost("www.qlcoder.com");
     }
 
-    void getMap(NameValueCollection cookies) {
+    const MapData& getMap() {
         HTTPRequest getRequest(HTTPRequest::HTTP_GET, "/train/autocr");
-        getRequest.setCookies(cookies);
+        getRequest.setCookies(m_cookies);
 
         session.sendRequest(getRequest);
 
@@ -138,21 +195,32 @@ public:
             int col = stoi(match.str(3)); // col width
             string mapstr = match.str(4);
 
-            MapData mapdata(level, col, row, mapstr);
-            mapdata.print();
-
-            for (int i = 0; i < row; ++i) {
-                for (int j = 0; j < col; ++j) {
-                    if (mapdata.at(i, j) == 0) {
-                        cout << "row:" << setw(2) << i << " col:" << setw(2) << j << " :" << mapdata.space(i, j) << endl;
-                    }
-                }
-            }
+            return move(MapData(level, col, row, mapstr));
+        } else {
+            return move(MapData());
         }
     }
+
+    bool postResult() {
+        // TODO
+        return true;
+    }
+
+    void setCookies(const NameValueCollection &cookies){
+        m_cookies = cookies;
+    }
+
+    void run() {
+        auto map = getMap();
+        map.print();
+    }
+
 private:
     HTTPClientSession session;
 
+    NameValueCollection m_cookies;
+
+    const MapData m_map;
 };
 
 int main()
@@ -161,11 +229,12 @@ int main()
         Solution solution;
         NameValueCollection cookies;
         cookies.add("laravel_session", "eyJpdiI6IjlHd0p5OUtkVWV3V25KY1JMWld0enc9PSIsInZhbHVlIjoiWUUyQ0JEWWJPZ2Fub1ZFbWRHWWF5QUlhV3B1Uk9jNElqT3k2bjFmZ2FXNkFIK3VPb3k4dHVGTDM0dFl0dWF6a1ZCUzZ5dmUyb0pUSWc0cXQ4NDZ0RVE9PSIsIm1hYyI6IjZlYzBlZTdiZGRmNWUzOGJkYTkzYWYyOGVhODQzOWQxOWY3MDNjYjJjMGEzNjM5NjNlMTRiNjljYTg0MjEyYzAifQ%3D%3D");
-        solution.getMap(cookies);
+        solution.setCookies(cookies);
+
+        solution.run();
     } catch (exception e) {
         cout << "e = " << e.what() << endl;
     }
 
     return 0;
 }
-
