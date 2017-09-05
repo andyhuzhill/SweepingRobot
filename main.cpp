@@ -15,6 +15,7 @@
 #include <Poco/Net/HTTPClientSession.h>
 #include <Poco/Net/HTTPRequest.h>
 #include <Poco/Net/HTTPResponse.h>
+#include <Poco/Net/NetException.h>
 
 #include <Poco/Runnable.h>
 #include <Poco/ThreadPool.h>
@@ -142,8 +143,26 @@ class Solution {
         }
     }
 
+    // 提交结果
     bool postResult() {
-        // TODO
+        HTTPRequest postRequest(HTTPRequest::HTTP_POST, "/train/crcheck");
+        postRequest.setCookies(m_cookies);
+        
+        HTMLForm form;
+        form.add("x", to_string(startPosX));
+        form.add("y", to_string(startPosY));
+        form.add("path", getResult());
+
+        form.prepareSubmit(postRequest);
+
+        form.write(session.sendRequest(postRequest));
+
+        HTTPResponse response;
+        auto &is = session.receiveResponse(response);
+        string responseHTML;
+        StreamCopier::copyToString(is, responseHTML);
+
+        cout << "result = " << responseHTML << endl;
         return true;
     }
 
@@ -152,11 +171,13 @@ class Solution {
     void run() {
         auto map = getMap();
         map.print();
+
+        postResult();
     }
 
     // 获取计算出来的路径
     string getResult() {
-        int resultLength = m_path.size() - 1;
+        int resultLength = m_path.size() > 1 ? m_path.size() - 1 : 0;
         shared_ptr<char> resultBuff = shared_ptr<char>(new char[resultLength]);
         memset(resultBuff.get(), 0, resultLength);
 
@@ -194,6 +215,8 @@ class Solution {
 
     NameValueCollection m_cookies;
 
+    int startPosX = 0;
+    int startPosY = 0;
     stack<Position> m_path;
 };
 
@@ -211,8 +234,8 @@ int main() {
         solution.setCookies(cookies);
 
         solution.run();
-    } catch (exception e) {
-        cout << "e = " << e.what() << endl;
+    } catch (NetException &ex) {
+        cout << "exception = " << ex.what() << endl;
     }
 
     int ch;
