@@ -115,6 +115,8 @@ class Solution {
   public:
     Solution() { session.setHost("www.qlcoder.com"); }
 
+    void setCookies(const NameValueCollection& cookies) { m_cookies = cookies; }
+
     const MapData& getMap() {
         HTTPRequest getRequest(HTTPRequest::HTTP_GET, "/train/autocr");
         getRequest.setCookies(m_cookies);
@@ -147,67 +149,75 @@ class Solution {
     bool postResult() {
         HTTPRequest postRequest(HTTPRequest::HTTP_POST, "/train/crcheck");
         postRequest.setCookies(m_cookies);
-        
+
         HTMLForm form;
         form.add("x", to_string(startPosX));
         form.add("y", to_string(startPosY));
-        form.add("path", getResult());
+        string path = getResult();
+        form.add("path", path);
+
+        cout << "solution: start_x = " << startPosX
+             << " start_y = " << startPosY << " path = " << path << endl;
 
         form.prepareSubmit(postRequest);
 
         form.write(session.sendRequest(postRequest));
 
         HTTPResponse response;
-        auto &is = session.receiveResponse(response);
+        auto& is = session.receiveResponse(response);
         string responseHTML;
         StreamCopier::copyToString(is, responseHTML);
 
-        cout << "result = " << responseHTML << endl;
         return true;
-    }
-
-    void setCookies(const NameValueCollection& cookies) { m_cookies = cookies; }
-
-    void run() {
-        auto map = getMap();
-        map.print();
-
-        postResult();
     }
 
     // 获取计算出来的路径
     string getResult() {
-        int resultLength = m_path.size() > 1 ? m_path.size() - 1 : 0;
-        shared_ptr<char> resultBuff = shared_ptr<char>(new char[resultLength]);
-        memset(resultBuff.get(), 0, resultLength);
-
         if (m_path.size() > 1) {
-            Position last = m_path.top();
-            m_path.pop();
-            int pos = resultLength - 1;
+            int resultLength = m_path.size() - 1;
+            shared_ptr<char> resultBuff =
+                shared_ptr<char>(new char[resultLength]);
+            memset(resultBuff.get(), 0, resultLength);
 
-            while (!m_path.empty()) {
-                Position curr = m_path.top();
+            if (m_path.size() > 1) {
+                Position last = m_path.top();
+                m_path.pop();
+                int pos = resultLength - 1;
 
-                if (curr.x == last.x) {
-                    if (curr.y > last.y) {
-                        resultBuff.get()[pos--] = 'l';
-                    } else {
-                        resultBuff.get()[pos--] = 'r';
+                while (!m_path.empty()) {
+                    Position curr = m_path.top();
+
+                    if (curr.x == last.x) {
+                        if (curr.y > last.y) {
+                            resultBuff.get()[pos--] = 'l';
+                        } else {
+                            resultBuff.get()[pos--] = 'r';
+                        }
+                    } else if (curr.y == last.y) {
+                        if (curr.x > last.x) {
+                            resultBuff.get()[pos--] = 'd';
+                        } else {
+                            resultBuff.get()[pos--] = 'u';
+                        }
                     }
-                } else if (curr.y == last.y) {
-                    if (curr.x > last.x) {
-                        resultBuff.get()[pos--] = 'd';
-                    } else {
-                        resultBuff.get()[pos--] = 'u';
-                    }
+
+                    last = curr;
                 }
-
-                last = curr;
             }
-        }
 
-        return string(resultBuff.get());
+            return string(resultBuff.get());
+        } else {
+            return "";
+        }
+    }
+
+    void run() {
+        for (;;) {
+            auto map = getMap();
+            map.print();
+
+            postResult();
+        }
     }
 
   private:
@@ -234,7 +244,7 @@ int main() {
         solution.setCookies(cookies);
 
         solution.run();
-    } catch (NetException &ex) {
+    } catch (NetException& ex) {
         cout << "exception = " << ex.what() << endl;
     }
 
