@@ -55,16 +55,16 @@ public:
     //        memcpy(data.get(), src.getData(), m_width * m_height);
     //    }
 
-    MapData &operator=( MapData &src) {
-        if (this != &src) {
-            m_level = src.level();
-            m_width = src.width();
-            m_height = src.height();
-            data = shared_ptr<uint8_t>(new uint8_t[m_width * m_height]);
-            memcpy(data.get(), src.getData(), m_width * m_height);
-        }
-        return *this;
-    }
+    //    MapData &operator=( MapData &src) {
+    //        if (this != &src) {
+    //            m_level = src.level();
+    //            m_width = src.width();
+    //            m_height = src.height();
+    //            data = shared_ptr<uint8_t>(new uint8_t[m_width * m_height]);
+    //            memcpy(data.get(), src.getData(), m_width * m_height);
+    //        }
+    //        return *this;
+    //    }
 
     int level() {
         return m_level;
@@ -152,6 +152,16 @@ public:
         }
 
         return string(resultBuff.get());
+    }
+
+    bool isFinished(){
+        bool result = true;
+        for (int i = 0; i < m_width * m_height; ++i) {
+            if (int(data.get()[i]) == 0) {
+                return false;
+            }
+        }
+        return result;
     }
 
     uint8_t *getData() {
